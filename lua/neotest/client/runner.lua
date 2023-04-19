@@ -102,31 +102,13 @@ end
 ---@param spec neotest.RunSpec
 ---@param adapter neotest.Adapter
 function TestRunner:_run_spec(spec, tree, args, adapter_id, adapter, results_callback)
-  local position = tree:data()
-  spec.strategy =
-    vim.tbl_extend("force", spec.strategy or {}, config.strategies[args.strategy] or {})
-  spec.env = vim.tbl_extend("force", spec.env or {}, args.env or {})
-  spec.cwd = args.cwd or spec.cwd
-  if vim.tbl_isempty(spec.env or {}) then
-    spec.env = nil
+
+  local cmd = table.concat(spec.command, " ")
+  local callback = function()
+    vim.fn['VimuxRunCommand'](cmd)
   end
-  local context = {
-    position = position,
-  }
 
-  local proc_key = self:_create_process_key(adapter_id, position.id)
-
-  local stream_processor = spec.stream
-    and function(stream)
-      for stream_results in spec.stream(stream) do
-        results_callback(tree, stream_results)
-      end
-    end
-  local process_result = self._processes:run(proc_key, spec, args, stream_processor, context)
-
-  local results = adapter.results(spec, process_result, tree)
-
-  results_callback(tree, results, process_result.output)
+  vim.defer_fn(callback, 0)
 end
 
 function TestRunner:_run_broken_down_tree(tree, args, adapter_id, adapter, results_callback)
